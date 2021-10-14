@@ -6,6 +6,7 @@
 
 import json
 import logging
+import time
 
 from mysqlserver import MySQL
 from ops.framework import StoredState
@@ -44,17 +45,18 @@ class MySQLProvider(ProviderBase):
         if not self.charm.unit.is_leader():
             return
         if not self.charm.mysql.is_ready():
-            event.defer()
-            return
-        try:
-            self.charm.mysql.new_user(creds)
-        except:
-            event.defer()
-            return
+            # Mysql may have *just* come up so rather than
+            # have to wait for a 5 minute defer just wait
+            # a short time before retrying.
+            time.sleep(20)
+            if not self.charm.mysql.is_ready():
+                event.defer()
+                return
 
         rel_id = event.relation.id
         creds = self.credentials(rel_id)
         creds["address"] = self.charm.unit_ip
+        self.charm.mysql.new_user(creds)
         data = {"credentials": dict(creds)}
         event.relation.data[self.charm.app]["data"] = json.dumps(data)
 
@@ -63,8 +65,13 @@ class MySQLProvider(ProviderBase):
         if not self.charm.unit.is_leader():
             return
         if not self.charm.mysql.is_ready():
-            event.defer()
-            return
+            # Mysql may have *just* come up so rather than
+            # have to wait for a 5 minute defer just wait
+            # a short time before retrying.
+            time.sleep(20)
+            if not self.charm.mysql.is_ready():
+                event.defer()
+                return
         data = event.relation.data[event.app]
         logger.debug("SERVER REQUEST DATA %s", data)
         dbs = data.get("databases")
