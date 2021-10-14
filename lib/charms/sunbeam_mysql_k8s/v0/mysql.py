@@ -45,9 +45,16 @@ from ops.framework import (
     Object,
 )
 
-LIBID = "abcdef1234"  # Will change when uploding the charm to charmhub
-LIBAPI = 1
-LIBPATCH = 0
+# The unique Charmhub library identifier, never change it
+LIBID = "1fdc567d7095465990dc1f9be80461fd"
+
+# Increment this major API version when introducing breaking changes
+LIBAPI = 0
+
+# Increment this PATCH version before using `charmcraft publish-lib` or reset
+# to 0 if you are raising the major API version
+LIBPATCH = 1
+
 logger = logging.getLogger(__name__)
 
 class DatabaseConnectedEvent(EventBase):
