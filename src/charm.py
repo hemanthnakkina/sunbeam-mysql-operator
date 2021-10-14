@@ -240,7 +240,7 @@ class MySQLCharm(CharmBase):
                 PEER: {
                     "override": "replace",
                     "summary": "mysql service",
-                    "command": "docker-entrypoint.sh mysqld",
+                    "command": "/usr/local/bin/docker-entrypoint.sh mysqld",
                     "startup": "enabled",
                     "environment": env_config(),
                 }

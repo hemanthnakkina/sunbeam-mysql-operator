@@ -90,7 +90,7 @@ class MySQL:
             return True
         except Error as e:
             logger.error(e)
-            return False
+            raise
             # Should we set BlockedStatus ?
 
     def new_super_user(self, credentials: dict):

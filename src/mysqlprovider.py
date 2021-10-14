@@ -43,11 +43,18 @@ class MySQLProvider(ProviderBase):
     def _on_database_relation_joined(self, event):
         if not self.charm.unit.is_leader():
             return
+        if not self.charm.mysql.is_ready():
+            event.defer()
+            return
+        try:
+            self.charm.mysql.new_user(creds)
+        except:
+            event.defer()
+            return
 
         rel_id = event.relation.id
         creds = self.credentials(rel_id)
         creds["address"] = self.charm.unit_ip
-        self.charm.mysql.new_user(creds)
         data = {"credentials": dict(creds)}
         event.relation.data[self.charm.app]["data"] = json.dumps(data)
 
@@ -55,7 +62,9 @@ class MySQLProvider(ProviderBase):
         """Ensure total number of databases requested are available"""
         if not self.charm.unit.is_leader():
             return
-
+        if not self.charm.mysql.is_ready():
+            event.defer()
+            return
         data = event.relation.data[event.app]
         logger.debug("SERVER REQUEST DATA %s", data)
         dbs = data.get("databases")
