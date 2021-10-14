@@ -48,7 +48,7 @@ class MySQLProvider(ProviderBase):
         creds = self.credentials(rel_id)
         creds["address"] = self.charm.unit_ip
         self.charm.mysql.new_user(creds)
-        data = {"credentials": creds}
+        data = {"credentials": dict(creds)}
         event.relation.data[self.charm.app]["data"] = json.dumps(data)
 
     def _on_database_relation_changed(self, event):

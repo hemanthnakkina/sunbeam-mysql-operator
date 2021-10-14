@@ -1,4 +1,4 @@
-git+https://github.com/canonical/operator/@master#egg=ops
+git+https://github.com/canonical/operator@4ab8ae5fb#egg=ops
 kubernetes
 mysql-connector-python
 semantic_version
