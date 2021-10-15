@@ -42,26 +42,13 @@ class MySQLProvider(ProviderBase):
     #               RELATIONS                    #
     ##############################################
     def _on_database_relation_joined(self, event):
-        if not self.charm.unit.is_leader():
-            return
-        if not self.charm.mysql.is_ready():
-            # Mysql may have *just* come up so rather than
-            # have to wait for a 5 minute defer just wait
-            # a short time before retrying.
-            time.sleep(20)
-            if not self.charm.mysql.is_ready():
-                event.defer()
-                return
-
-        rel_id = event.relation.id
-        creds = self.credentials(rel_id)
-        creds["address"] = self.charm.unit_ip
-        self.charm.mysql.new_user(creds)
-        data = {"credentials": dict(creds)}
-        event.relation.data[self.charm.app]["data"] = json.dumps(data)
+        self._process_requests(event)
 
     def _on_database_relation_changed(self, event):
         """Ensure total number of databases requested are available"""
+        self._process_requests(event)
+
+    def _process_requests(self, event):
         if not self.charm.unit.is_leader():
             return
         if not self.charm.mysql.is_ready():
@@ -73,29 +60,34 @@ class MySQLProvider(ProviderBase):
                 event.defer()
                 return
         data = event.relation.data[event.app]
-        logger.debug("SERVER REQUEST DATA %s", data)
+        rel_id = event.relation.id
+        dbs_available = self.charm.mysql.databases()
+        logger.debug("SERVER AVAILABLE DB %s", dbs_available)
         dbs = data.get("databases")
         dbs_requested = json.loads(dbs) if dbs else []
         logger.debug("SERVER REQUEST DB %s", dbs_requested)
-        dbs_available = self.charm.mysql.databases()
-        logger.debug("SERVER AVAILABLE DB %s", dbs_available)
-        missing = None
-
         if dbs_requested:
             if dbs_available:
                 missing = list(set(dbs_requested) - set(dbs_available))
             else:
                 missing = dbs_requested
-
         if missing:
-            dbs_available.extend(missing)
-            logger.debug("SERVER REQUEST RESPONSE %s", dbs_available)
-            rel_id = event.relation.id
-            creds = self.credentials(rel_id)
-            self.charm.mysql.new_dbs_and_user(creds, dbs_available)
-            event.relation.data[self.charm.app]["databases"] = json.dumps(
-                dbs_available
-            )
+            logger.debug("DBS missing %s", missing)
+            for db in missing:
+                self.charm.mysql.new_database(db)
+        creds = self.credentials(rel_id)
+        creds["address"] = self.charm.unit_ip
+        username = creds['username']
+        logger.debug(creds)
+        self.charm.mysql.new_user(creds)
+        for db in dbs_requested:
+            logger.debug(f"Granting access to {db} to {username}")
+            cmd = self.charm.mysql._grant_privileges(creds, db)
+            self.charm.mysql._execute_query(cmd)
+        event.relation.data[self.charm.app]["databases"] = json.dumps(
+            dbs_requested)
+        data = {"credentials": dict(creds)}
+        event.relation.data[self.charm.app]["data"] = json.dumps(data)
 
     def _on_database_relation_broken(self, event):
         if not self.charm.unit.is_leader():
