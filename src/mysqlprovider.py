@@ -71,6 +71,9 @@ class MySQLProvider(ProviderBase):
                 missing = list(set(dbs_requested) - set(dbs_available))
             else:
                 missing = dbs_requested
+        else:
+            logger.debug("No databases requested, nothing to do")
+            return
         if missing:
             logger.debug("DBS missing %s", missing)
             for db in missing:

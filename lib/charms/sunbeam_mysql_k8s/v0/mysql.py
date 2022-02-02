@@ -35,7 +35,6 @@ to get the relevant information from the relation data.
 import json
 import uuid
 import logging
-from ops.relation import ConsumerBase
 
 from ops.framework import (
     StoredState,
