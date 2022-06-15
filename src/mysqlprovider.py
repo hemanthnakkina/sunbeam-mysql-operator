@@ -79,7 +79,9 @@ class MySQLProvider(ProviderBase):
             for db in missing:
                 self.charm.mysql.new_database(db)
         creds = self.credentials(rel_id)
-        creds["address"] = self.charm.unit_ip
+        app_name = self.model.app.name
+        unit_name = self.model.unit.name.replace('/', '-')
+        creds["address"] = "{}.{}-endpoints".format(unit_name, app_name)
         username = creds['username']
         logger.debug(creds)
         self.charm.mysql.new_user(creds)
